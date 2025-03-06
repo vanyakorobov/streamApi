@@ -1,3 +1,5 @@
+package org.example;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
@@ -79,99 +81,12 @@ public class Main {
         // booksWithPriceOver100.forEach(product -> System.out.println(product));
 
         // Получите список заказов с продуктами из категории "Children's products".
-        List<Product> childrenProd = customers.stream()
+        List<Order> ordersChildrenProd = customers.stream()
                 .flatMap(customer -> customer.getOrders().stream())
-                .flatMap(order -> order.getProducts().stream())
-                .filter(product -> "Children's products".equals(product.getCategory()))
-                .toList();
-        //childrenProd.forEach(product -> System.out.println(product));
-
-        //получите список продуктов из категории "Toys" и примените скидку 10% и получите сумму всех
-        //продуктов.
-        BigDecimal totalWithDiscount = customers.stream()
-                .flatMap(customer -> customer.getOrders().stream())
-                .flatMap(order -> order.getProducts().stream())
-                .filter(product -> "Toys".equals(product.getCategory()))
-                .map(product -> product.getPrice().multiply(new BigDecimal("0.9")))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        // System.out.println(totalWithDiscount);
-
-        //получите список продуктов, заказанных клиентом второго уровня между 01-фев-2021 и 01-апр-2021.
-        List<Product> cheapestBooks = customers.stream()
-                .flatMap(customer -> customer.getOrders().stream())
-                .flatMap(order -> order.getProducts().stream())
-                .filter(product -> "Books".equals(product.getCategory()))
-                .sorted(Comparator.comparing(Product::getPrice))
-                .distinct()
-                .limit(2)
+                .filter(order -> order.getProducts().stream()
+                        .anyMatch(product -> "Children's products".equals(product.getCategory())))
                 .toList();
 
-        //  cheapestBooks.forEach(product -> System.out.println(product));
-
-        //получите 3 самых последних сделанных заказа.
-        List<Order> orderList3 = orders.stream()
-                .sorted(Comparator.comparing(Order::getOrderDate).reversed())
-                .distinct()
-                .limit(3)
-                .toList();
-        // orderList3.forEach(order -> System.out.println(order));
-
-        //получите список заказов, сделанных 15-марта-2021, выведите id заказов в консоль и затем верните
-        //список их продуктов
-        List<Product> productsFromMarch15Orders = orders.stream()
-                .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 15)))
-                .peek(order -> System.out.println("Order ID: " + order.getId()))
-                .flatMap(order -> order.getProducts().stream())
-                .collect(Collectors.toList());
-        // Выводим список продуктов
-        productsFromMarch15Orders.forEach(product -> System.out.println(product));
-
-        BigDecimal productsFromFeb = orders.stream()
-                .filter(order ->
-                        !order.getOrderDate().isBefore(LocalDate.of(2021, 2, 1)) &&
-                                order.getOrderDate().isBefore(LocalDate.of(2021, 3, 1)))
-                .flatMap(order -> order.getProducts().stream())
-                .map(Product::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        System.out.println(productsFromFeb);
-
-        //Рассчитайте средний платеж по заказам, сделанным 14-марта-2021.
-        OptionalDouble averagePayment = orders.stream()
-                .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 14))) // Фильтруем по дате
-                .map(order -> order.getProducts().stream() // Для каждого заказа берем продукты
-                        .map(Product::getPrice) // Извлекаем цену каждого продукта
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)) // Суммируем цены продуктов
-                .mapToDouble(BigDecimal::doubleValue)
-                .average();// Преобразуем BigDecimal в double
-        System.out.println("Средний платёж: " + averagePayment);
-
-        // Получите набор статистических данных (сумма, среднее, максимум, минимум, количество) для всех
-        //продуктов категории "Книги"
-        ProductStatistics stats = products.stream()
-                .filter(product -> "Books".equals(product.getCategory())) // Фильтруем по категории "Books"
-                .map(Product::getPrice) // Извлекаем цену каждого продукта
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toList(), // Сначала собираем все цены в список
-                        prices -> {
-                            BigDecimal sum = prices.stream().reduce(BigDecimal.ZERO, BigDecimal::add); // Сумма
-                            BigDecimal average = BigDecimal.valueOf(prices.stream()
-                                    .mapToDouble(BigDecimal::doubleValue)
-                                    .average()
-                                    .orElse(0.0)); // Среднее
-                            BigDecimal max = prices.stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO); // Максимум
-                            BigDecimal min = prices.stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO); // Минимум
-                            long count = prices.size(); // Количество
-                            // System.out.println(new ProductStatistics(sum, average, min, max, count));
-                            return new ProductStatistics(sum, average, max, min, count); // Возвращаем объект статистики
-                        }));
-
-        //Получите данные Map<Long, Integer> → key - id заказа, value - кол-во товаров в заказе
-        Map<Long, Integer> orderProductCountMap = orders.stream()
-                .collect(Collectors.toMap(Order::getId, order -> order.getProducts().size()));
-
-        orderProductCountMap.forEach((orderId, productCount) ->
-                System.out.println("Order ID: " + orderId + ", Count: " + productCount)
-        );
 
         //Создайте Map<Customer, List<Order>> → key - покупатель, value - список его заказов
         Map<Customer, List<Order>> customerOrdersMap = customers.stream()
@@ -188,38 +103,145 @@ public class Main {
             );
         });
 
+    }
 
-        //Создайте Map<Order, Double> → key - заказ, value - общая сумма продуктов заказа.
-        Map<Order, Double> orderTotalMap = orders.stream()
-                .collect(Collectors.toMap(
-                        order -> order,
-                        order -> order.getProducts().stream()
+    //Получите Map<String, Product> → самый дорогой продукт по каждой категории.
+    public Set<CategoryMostExpensiveProduct> getMostExpensiveProductByCategorySet(List<Product> products) {
+        return products.stream()
+                .collect(Collectors.groupingBy(
+                        Product::getCategory,
+                        Collectors.collectingAndThen(
+                                Collectors.maxBy(Comparator.comparing(Product::getPrice)), // Самый дорогой продукт
+                                optional -> optional.orElse(null) // Вытягиваем сам продукт
+                        )
+                ))
+                .entrySet().stream()
+                .map(entry -> new CategoryMostExpensiveProduct(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toSet()); // Собираем в Set объектов CategoryMostExpensiveProduct
+    }
+
+    public Map<String, List<Product>> getToysWithDiscount(List<Customer> customers) {
+
+        List<Product> toysWithDiscount = customers.stream()
+                .flatMap(customer -> customer.getOrders().stream())
+                .flatMap(order -> order.getProducts().stream())
+                .filter(product -> "Toys".equals(product.getCategory()))
+                .map(product -> {
+                    product.setPrice(product.getPrice().multiply(new BigDecimal("0.9")));
+                    return product;
+                })
+                .collect(Collectors.toList());
+
+        return Map.of("ToysWithDiscount", toysWithDiscount);
+    }
+
+    //получите список продуктов, заказанных клиентом второго уровня между 01-фев-2021 и 01-апр-2021.
+    public List<Product> getProductsOrderedByLevel2CustomersBetweenDates(List<Customer> customers, LocalDate startDate, LocalDate endDate) {
+
+        return customers.stream()
+                .filter(customer -> customer.getLevel() == 2)
+                .flatMap(customer -> customer.getOrders().stream())
+                .filter(order -> !order.getOrderDate().isBefore(LocalDate.of(2021, 2, 1))
+                        && !order.getOrderDate().isAfter(LocalDate.of(2021, 4, 1)))
+                .flatMap(order -> order.getProducts().stream())
+                .collect(Collectors.toList());
+    }
+
+    //получите список заказов, сделанных 15-марта-2021, выведите id заказов в консоль и затем верните
+    //список их продуктов
+    public List<Order> getOrdersFromMarch15(List<Order> orders) {
+        return orders.stream()
+                .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 15)))
+                .peek(order -> System.out.println("Order ID: " + order.getId()))
+                .collect(Collectors.toList());
+    }
+
+    // Получение суммы цен продуктов из заказовв феврале 2021
+    public BigDecimal getProductsFromFeb(List<Order> orders) {
+        return orders.stream()
+                .filter(order -> !order.getOrderDate().isBefore(LocalDate.of(2021, 2, 1)) &&
+                        order.getOrderDate().isBefore(LocalDate.of(2021, 3, 1)))
+                .flatMap(order -> order.getProducts().stream())
+                .map(Product::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    //получите 3 самых последних сделанных заказа.
+    public Set<Order> getLast3Orders(List<Order> orders) {
+        return orders.stream()
+                .sorted(Comparator.comparing(Order::getOrderDate).reversed())
+                .limit(3)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Order> getOrdersFromMarch14(List<Order> orders) {
+        // Фильтруем по дате и собираем в Set
+        return orders.stream()
+                .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 14)))
+                .collect(Collectors.toSet());
+    }
+
+    public OptionalDouble getAveragePaymentOnMarch14(List<Order> orders) {
+        //средний платеж по заказаи
+        return orders.stream()
+                .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 14))) // Фильтруем по дате
+                .map(order -> order.getProducts().stream()
+                        .map(Product::getPrice)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .mapToDouble(BigDecimal::doubleValue)
+                .average();
+    }
+
+    // Получите набор статистических данных (сумма, среднее, максимум, минимум, количество) для всех
+    //продуктов категории "Книги"
+    public ProductStatistics getBookStatistics(Set<Product> products) {
+
+        return products.stream()
+                .filter(product -> "Books".equals(product.getCategory()))
+                .map(Product::getPrice)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toSet(),
+                        prices -> {
+                            BigDecimal sum = prices.stream().reduce(BigDecimal.ZERO, BigDecimal::add); // Сумма
+                            BigDecimal average = BigDecimal.valueOf(prices.stream()
+                                    .mapToDouble(BigDecimal::doubleValue)
+                                    .average()
+                                    .orElse(0.0)); // Среднее
+                            BigDecimal max = prices.stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+                            BigDecimal min = prices.stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+                            long count = prices.size(); // Количество
+                            return new ProductStatistics(sum, average, max, min, count);
+                        }));
+    }
+
+    //Получите данные Map<Long, Integer> → key - id заказа, value - кол-во товаров в заказе
+    public Set<String> getOrderProductCounts(Set<Order> orders) {
+        return orders.stream()
+                .map(order -> "Order id: " + order.getId() + ", Count: " + order.getProducts().size())
+                .collect(Collectors.toSet());
+    }
+
+    //Создайте Map<Order, Double> → key - заказ, value - общая сумма продуктов заказа.
+    public Set<String> getOrderTotalSet(List<Order> orders) {
+        return orders.stream()
+                .map(order -> "Order ID: " + order.getId() + ", Total: " +
+                        order.getProducts().stream()
                                 .map(Product::getPrice)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                                .doubleValue()
-                ));
-
-        //результат
-        orderTotalMap.forEach((order, totalPrice) -> {
-            System.out.println("Order id: " + order.getId() + ", Total: " + totalPrice);
-        });
-
-        //Получите Map<String, List<String>> → key - категория, value - список названий товаров в категории
-        Map<String, List<String>> productInCategory = products.stream()
-                .collect(Collectors.groupingBy(
-                        Product::getCategory, // ключ - категория
-                        Collectors.mapping(Product::getName, Collectors.toList()) // список названий продуктов в категории
-                ));
-
-        //Получите Map<String, Product> → самый дорогой продукт по каждой категории.
-        Map<String, Product> mostExpensiveProductByCategory = products.stream()
-                .collect(Collectors.groupingBy(
-                        Product::getCategory, // группировка по категории
-                        Collectors.collectingAndThen(
-                                Collectors.maxBy(Comparator.comparing(Product::getPrice)),
-                                optional -> optional.orElse(null)
-                        )
-                ));
+                                .doubleValue())
+                .collect(Collectors.toSet());
     }
+
+    //Получите Map<String, List<String>> → key - категория, value - список названий товаров в категории
+    public Set<String> getProductCategorySet(List<Product> products) {
+        return products.stream()
+                .collect(Collectors.groupingBy(
+                        Product::getCategory,
+                        Collectors.mapping(Product::getName, Collectors.toList())
+                ))
+                .entrySet().stream()
+                .map(entry -> "Category: " + entry.getKey() + ", Products: " + entry.getValue())
+                .collect(Collectors.toSet()); // Сборка в Set строк
+    }
+
 }
-//

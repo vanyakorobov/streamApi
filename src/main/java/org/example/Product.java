@@ -1,3 +1,5 @@
+package org.example;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -30,7 +32,9 @@ public class Product {  // продукты
     public BigDecimal getPrice() {
         return price;
     }
-
+public BigDecimal setPrice(BigDecimal price) {
+        return price;
+}
     @Override
     public String toString() {
         return "Product{" +
