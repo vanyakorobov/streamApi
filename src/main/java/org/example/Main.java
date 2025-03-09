@@ -71,32 +71,35 @@ public class Main {
                 new Customer(5L, "Eve", 1L, new HashSet<>()) // Без заказов
         ));
 
-// Получите список продуктов из категории "Books" с ценой более 100.
-        List<Product> booksWithPriceOver100 = customers.stream()
+        List<Product> doTask1 = customers.stream()
                 .flatMap(customer -> customer.getOrders().stream())
                 .flatMap(order -> order.getProducts().stream())
                 .filter(product -> "Books".equals(product.getCategory()) && product.getPrice().compareTo(new BigDecimal("100")) > 0)
                 .distinct()
                 .toList();
-        // booksWithPriceOver100.forEach(product -> System.out.println(product));
 
-        // Получите список заказов с продуктами из категории "Children's products".
-        List<Order> ordersChildrenProd = customers.stream()
+        List<Order> doTask2 = customers.stream()
                 .flatMap(customer -> customer.getOrders().stream())
                 .filter(order -> order.getProducts().stream()
                         .anyMatch(product -> "Children's products".equals(product.getCategory())))
                 .toList();
 
+        BigDecimal doTask3 = customers.stream()
+                .flatMap(customer -> customer.getOrders().stream())
+                .flatMap(order -> order.getProducts().stream())
+                .filter(product -> "Toys".equals(product.getCategory()))
+                .map(product -> product.getPrice().multiply(new BigDecimal("0.9")))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // System.out.println(totalWithDiscount);
 
-        //Создайте Map<Customer, List<Order>> → key - покупатель, value - список его заказов
-        Map<Customer, List<Order>> customerOrdersMap = customers.stream()
+
+        Map<Customer, List<Order>> doTask12 = customers.stream()
                 .collect(Collectors.toMap(
                         customer -> customer,
                         customer -> new ArrayList<>(customer.getOrders())
                 ));
 
-        //результат
-        customerOrdersMap.forEach((customer, ordersList) -> {
+        doTask12.forEach((customer, ordersList) -> {
             System.out.println("Customer: " + customer.getName());
             ordersList.forEach(order ->
                     System.out.println("  Order id: " + order.getId() + ", Статус: " + order.getStatus())
@@ -105,23 +108,18 @@ public class Main {
 
     }
 
-    //Получите Map<String, Product> → самый дорогой продукт по каждой категории.
-    public Set<CategoryMostExpensiveProduct> getMostExpensiveProductByCategorySet(List<Product> products) {
+    public Map<String, Product> doTask15(List<Product> products) {
         return products.stream()
                 .collect(Collectors.groupingBy(
                         Product::getCategory,
                         Collectors.collectingAndThen(
-                                Collectors.maxBy(Comparator.comparing(Product::getPrice)), // Самый дорогой продукт
-                                optional -> optional.orElse(null) // Вытягиваем сам продукт
+                                Collectors.maxBy(Comparator.comparing(Product::getPrice)),
+                                optional -> optional.orElse(null)
                         )
-                ))
-                .entrySet().stream()
-                .map(entry -> new CategoryMostExpensiveProduct(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toSet()); // Собираем в Set объектов CategoryMostExpensiveProduct
+                ));
     }
 
-    public Map<String, List<Product>> getToysWithDiscount(List<Customer> customers) {
-
+    public Map<String, List<Product>> doTask3(List<Customer> customers) {
         List<Product> toysWithDiscount = customers.stream()
                 .flatMap(customer -> customer.getOrders().stream())
                 .flatMap(order -> order.getProducts().stream())
@@ -135,8 +133,7 @@ public class Main {
         return Map.of("ToysWithDiscount", toysWithDiscount);
     }
 
-    //получите список продуктов, заказанных клиентом второго уровня между 01-фев-2021 и 01-апр-2021.
-    public List<Product> getProductsOrderedByLevel2CustomersBetweenDates(List<Customer> customers, LocalDate startDate, LocalDate endDate) {
+    public List<Product> doTask4 (List<Customer> customers, LocalDate startDate, LocalDate endDate) {
 
         return customers.stream()
                 .filter(customer -> customer.getLevel() == 2)
@@ -147,17 +144,14 @@ public class Main {
                 .collect(Collectors.toList());
     }
 
-    //получите список заказов, сделанных 15-марта-2021, выведите id заказов в консоль и затем верните
-    //список их продуктов
-    public List<Order> getOrdersFromMarch15(List<Order> orders) {
+    public List<Order> doTask7(List<Order> orders) {
         return orders.stream()
                 .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 15)))
                 .peek(order -> System.out.println("Order ID: " + order.getId()))
                 .collect(Collectors.toList());
     }
 
-    // Получение суммы цен продуктов из заказовв феврале 2021
-    public BigDecimal getProductsFromFeb(List<Order> orders) {
+    public BigDecimal doTask8(List<Order> orders) {
         return orders.stream()
                 .filter(order -> !order.getOrderDate().isBefore(LocalDate.of(2021, 2, 1)) &&
                         order.getOrderDate().isBefore(LocalDate.of(2021, 3, 1)))
@@ -166,22 +160,15 @@ public class Main {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    //получите 3 самых последних сделанных заказа.
-    public Set<Order> getLast3Orders(List<Order> orders) {
+    public Set<Order> doTask6(List<Order> orders) {
         return orders.stream()
                 .sorted(Comparator.comparing(Order::getOrderDate).reversed())
                 .limit(3)
                 .collect(Collectors.toSet());
     }
 
-    public Set<Order> getOrdersFromMarch14(List<Order> orders) {
-        // Фильтруем по дате и собираем в Set
-        return orders.stream()
-                .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 14)))
-                .collect(Collectors.toSet());
-    }
 
-    public OptionalDouble getAveragePaymentOnMarch14(List<Order> orders) {
+    public OptionalDouble doTask9(List<Order> orders) {
         //средний платеж по заказаи
         return orders.stream()
                 .filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 14))) // Фильтруем по дате
@@ -192,9 +179,7 @@ public class Main {
                 .average();
     }
 
-    // Получите набор статистических данных (сумма, среднее, максимум, минимум, количество) для всех
-    //продуктов категории "Книги"
-    public ProductStatistics getBookStatistics(Set<Product> products) {
+    public ProductStatistics doTask10(Set<Product> products) {
 
         return products.stream()
                 .filter(product -> "Books".equals(product.getCategory()))
@@ -214,15 +199,13 @@ public class Main {
                         }));
     }
 
-    //Получите данные Map<Long, Integer> → key - id заказа, value - кол-во товаров в заказе
-    public Set<String> getOrderProductCounts(Set<Order> orders) {
+    public Set<String> doTask11(Set<Order> orders) {
         return orders.stream()
                 .map(order -> "Order id: " + order.getId() + ", Count: " + order.getProducts().size())
                 .collect(Collectors.toSet());
     }
 
-    //Создайте Map<Order, Double> → key - заказ, value - общая сумма продуктов заказа.
-    public Set<String> getOrderTotalSet(List<Order> orders) {
+    public Set<String> doTask13(List<Order> orders) {
         return orders.stream()
                 .map(order -> "Order ID: " + order.getId() + ", Total: " +
                         order.getProducts().stream()
@@ -232,8 +215,7 @@ public class Main {
                 .collect(Collectors.toSet());
     }
 
-    //Получите Map<String, List<String>> → key - категория, value - список названий товаров в категории
-    public Set<String> getProductCategorySet(List<Product> products) {
+    public Set<String> doTask14(List<Product> products) {
         return products.stream()
                 .collect(Collectors.groupingBy(
                         Product::getCategory,
@@ -242,6 +224,17 @@ public class Main {
                 .entrySet().stream()
                 .map(entry -> "Category: " + entry.getKey() + ", Products: " + entry.getValue())
                 .collect(Collectors.toSet()); // Сборка в Set строк
+    }
+
+    public List<Product> doTask5(List<Product> products) {
+        // Получаем топ-2 самых дешевых книги
+        List<Product> top2CheapestBooks = products.stream()
+                .filter(product -> "Books".equals(product.getCategory()))
+                .sorted((p1, p2) -> p1.getPrice().compareTo(p2.getPrice()))
+                .limit(2)
+                .collect(Collectors.toList());
+
+        return top2CheapestBooks;
     }
 
 }
