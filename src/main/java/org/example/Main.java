@@ -163,12 +163,10 @@ public class Main {
 
     public static Map<Long, Integer> doTask11(List<Customer> customers) {
         return customers.stream()
+                .flatMap(customer -> customer.getOrders().stream())
                 .collect(Collectors.toMap(
-                        Customer::getId,
-                        customer -> customer.getOrders().stream()
-                                .flatMap(order -> order.getProducts().stream())
-                                .collect(Collectors.toList())
-                                .size()
+                        Order::getId,
+                        order -> order.getProducts().size()
                 ));
     }
 
